@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Prediction Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-deep: #050508;
+            --sidebar-color: #0d0d1a;
+            --purple-glow: #bc13fe;
+            --gold-glow: #f2c94c;
+            --text-white: #ffffff;
+            --glass-panel: rgba(255, 255, 255, 0.05);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            /* Nebula Style Background */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(188, 19, 254, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(242, 201, 76, 0.15) 0%, transparent 40%);
+            color: var(--text-white);
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR - PERSISTENT CONTROLS */
+        aside {
+            width: 320px;
+            background: var(--sidebar-color);
+            border-right: 2px solid var(--purple-glow);
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+            z-index: 100;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .main-header h1 {
+            color: var(--gold-glow);
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* INPUTS - HIGH VISIBILITY FIXED */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--purple-glow);
+            text-transform: uppercase;
+        }
+
+        select, input {
+            background: #151525 !important; /* Solid background for visibility */
+            border: 2px solid var(--gold-glow) !important;
+            color: white !important;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+            display: block !important;
+            opacity: 1 !important;
+        }
+
+        select option { background: #0d0d1a; color: white; }
+
+        .btn-predict {
+            background: linear-gradient(45deg, var(--purple-glow), #7a09aa);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(188, 19, 254, 0.4);
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(188, 19, 254, 0.6);
+        }
+
+        /* MAIN CONTENT AREA */
+        main {
+            flex-grow: 1;
+            padding: 50px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .title-section h1 {
+            font-size: 4rem;
+            margin: 0;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* DATA CARDS */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--glass-panel);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            color: var(--gold-glow);
+        }
+
+        .stat-card div p { margin: 0; color: #888; font-size: 0.8rem; text-transform: uppercase; }
+        .stat-card div h2 { margin: 5px 0 0 0; font-size: 2rem; color: #fff; }
+
+        /* CHART AREA */
+        .chart-wrap {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--purple-glow);
+            border-radius: 24px;
+            padding: 25px;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="main-header">
+        <h1><i class="fas fa-wind"></i> Weather Prediction</h1>
+    </div>
+
+    <div class="input-group">
+        <label>Select State</label>
+        <select id="stateSelect">
+            </select>
+    </div>
+
+    <div class="input-group">
+        <label>Select Year</label>
+        <input type="number" id="yearInput" value="2026">
+    </div>
+
+    <button class="btn-predict" onclick="runPrediction()">
+        <i class="fas fa-bolt"></i> Generate Forecast
+    </button>
+
+    <div style="margin-top: auto; color: #444; font-size: 0.7rem;">
+        LOGIC: DAISY-CHAIN PRIORITY<br>
+        STATUS: SYSTEM READY
+    </div>
+</aside>
+
+<main>
+    <div class="title-section">
+        <span style="color: var(--gold-glow); font-weight: bold; letter-spacing: 2px;">INDIA REGIONAL ANALYSIS</span>
+        <h1 id="displayState">Weather</h1>
+    </div>
+
+    <div class="grid-container">
+        <div class="stat-card">
+            <i class="fas fa-cloud-rain"></i>
+            <div>
+                <p>Predicted Avg Rainfall</p>
+                <h2 id="rainVal">-- mm</h2>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-temperature-high"></i>
+            <div>
+                <p>Temp Range (Min/Max)</p>
+                <h2 id="tempVal">-- / -- °C</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-wrap">
+        <canvas id="predictionChart"></canvas>
+    </div>
+</main>
+
+<script>
+    // 1. Alphabetical States
+    const states = [
+        "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
+        "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli", "Delhi", "Goa", 
+        "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", 
+        "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", 
+        "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
+        "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+    ].sort();
+
+    const select = document.getElementById('stateSelect');
+    states.forEach(s => {
+        let opt = document.createElement('option');
+        opt.value = s; opt.innerHTML = s;
+        select.appendChild(opt);
+    });
+
+    let chart;
+
+    // 2. Prediction Logic
+    function runPrediction() {
+        const selectedState = select.value;
+        document.getElementById('displayState').innerText = selectedState;
+
+        // Mock data generation
+        const rainfall = Array.from({length: 12}, () => Math.floor(Math.random() * 400));
+        const avg = (rainfall.reduce((a,b) => a+b)/12).toFixed(1);
+        const minT = Math.floor(Math.random() * 10) + 12;
+        const maxT = minT + 20;
+
+        document.getElementById('rainVal').innerText = avg + " mm";
+        document.getElementById('tempVal').innerText = `${minT}° / ${maxT}°`;
+
+        const regressionLine = calculateRegression(rainfall);
+        updateUIChart(rainfall, regressionLine);
+    }
+
+    // Linear Regression Formula (Daisy Chain method)
+    function calculateRegression(data) {
+        const n = data.length;
+        const x = [0,1,2,3,4,5,6,7,8,9,10,11];
+        let sx=0, sy=0, sxy=0, sxx=0;
+        for(let i=0; i<n; i++) {
+            sx += x[i]; sy += data[i];
+            sxy += x[i]*data[i]; sxx += x[i]*x[i];
+        }
+        const m = (n*sxy - sx*sy) / (n*sxx - sx*sx);
+        const b = (sy - m*sx) / n;
+        return x.map(v => (m * v + b).toFixed(2));
+    }
+
+    function updateUIChart(actual, trend) {
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        if(chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Predicted Rainfall',
+                    data: actual,
+                    borderColor: '#f2c94c',
+                    backgroundColor: 'rgba(242, 201, 76, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Regression Trend',
+                    data: trend,
+                    borderColor: '#bc13fe',
+                    borderDash: [8, 4],
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#fff' } } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                    x: { grid: { display: false }, ticks: { color: '#888' } }
+                }
+            }
+        });
+    }
+
+    // Initialize on start
+    window.onload = runPrediction;
+</script>
+</body>
+</html>
